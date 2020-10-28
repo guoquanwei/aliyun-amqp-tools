@@ -99,13 +99,13 @@ const getConfirmChannel = async (connKey, queueName) => {
 
 const startProduce = async (queue) => {
     utils.objArgsCheck({queue}, ['queue'])
-    await getConn(queue.vhostName, 'Producer', startProducer, [queue])
+    await getConn(queue.vhostName, 'Producer', startProduce, [queue])
     await getConfirmChannel(queue.vhostName + 'Producer', queue.name)
 }
 
 const startConsume = async (queue, consumeFunc) => {
     utils.objArgsCheck({queue, consumeFunc}, ['queue', 'consumeFunc'])
-    await getConn(queue.vhostName, 'Consumer', startConsumer, [queue, consumeFunc])
+    await getConn(queue.vhostName, 'Consumer', startConsume, [queue, consumeFunc])
     const channel = await getConfirmChannel(queue.vhostName + 'Consumer', queue.name)
     // 预加载1个消息
     await channel.prefetch(parseInt(queue.prefetch || 1))

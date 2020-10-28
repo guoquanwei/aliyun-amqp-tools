@@ -15,9 +15,5 @@ const queue = {
     "prefetch": 1
 }
 
-amqpTools.startConsumer(queue, () => {})
-amqpTools.startProducer(queue)
-
-server.listen(9999, () => {
-    logger.info('living, port: 9999');
-})
+amqpTools.startConsume(queue, () => {})
+amqpTools.startProduce(queue)
