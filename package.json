@@ -1,0 +1,68 @@
+{
+  "name": "onions-project-init",
+  "version": "1.0.3",
+  "license": "MIT",
+  "main": "index.js",
+  "author": "guoquanwei",
+  "entry point": "app/app.js",
+  "description": "node service model",
+  "keywords": ["service-model", "koa"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guoquanwei/onions-project-init"
+  },
+  "scripts": {
+    "start": "./node_modules/.bin/nodemon bin/www",
+    "dev": "PORT=6666 ./node_modules/.bin/nodemon bin/www",
+    "preinstall": "npm remove wormhole --no-save && npm update wormhole",
+    "prd": "pm2 start bin/www",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "precommit-msg": "echo 'Pre-commit checks...' && exit 0",
+    "standard": "./node_modules/.bin/eslint .",
+    "standard-fix": "./node_modules/.bin/eslint . --fix",
+    "migrate-production": "NODE_ENV=production node_modules/.bin/sequelize db:migrate",
+    "migrate-stage": "NODE_ENV=stage node_modules/.bin/sequelize db:migrate",
+    "migrate": "NODE_ENV=development ./node_modules/.bin/sequelize db:migrate"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "bluebird": "^3.5.2",
+    "compare-versions": "^3.6.0",
+    "config": "^3.3.1",
+    "http-assert": "^1.4.0",
+    "ioredis": "^4.16.0",
+    "koa": "^2.5.3",
+    "koa-bodyparser": "^4.2.1",
+    "koa-json": "^2.0.2",
+    "koa-jwt": "^4.0.0",
+    "koa-logger": "^3.2.0",
+    "koa-router": "^9.4.0",
+    "koa2-cors": "^2.0.6",
+    "lodash": "^4.17.11",
+    "moment": "^2.22.2",
+    "pg": "^8.3.3",
+    "require-directory": "^2.1.1",
+    "sequelize": "^6.3.5",
+    "sequelize-auto-migrations": "^1.0.3",
+    "sequelize-cli": "^6.2.0",
+    "validator": "^13.1.1",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "ava": "^3.12.1",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.9.0",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "husky": "^4.3.0",
+    "nodemon": "^2.0.4",
+    "readline-sync": "^1.4.9"
+  },
+  "pre-commit": [
+    "precommit-msg",
+    "standard"
+  ]
+}
