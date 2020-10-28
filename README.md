@@ -59,6 +59,7 @@ consumeFuc = async (msg) => {
 ```
 
 ### sendMsg([queue], [msgObj || msgArray])
+You must init connect before sendMsg.
 
 ### getConn([vhostName], [role], [recoverFunc], [recoverFuncArgs])
 - role: "Producer" or "Consumer"
