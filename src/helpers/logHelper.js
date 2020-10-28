@@ -1,4 +1,3 @@
-const logConfig = require('config').get('logConfig')
 const winston = require('winston')
 const moment = require('moment')
 const _ = require('lodash')
@@ -16,7 +15,7 @@ const _ = require('lodash')
 }
  */
 
-const LOG_LEVEL = process.env.LOG_LEVEL || logConfig.level
+const LOG_LEVEL = process.env.LOG_LEVEL || 'debug'
 
 const instanceMap = {}
 
@@ -74,16 +73,6 @@ const getLogger = (category) => {
   })
   return instanceMap[category]
 }
-
-// const log4js = require('log4js')
-//
-// const LOG_LEVEL = process.env.LOG_LEVEL || logConfig.level
-//
-// const getLogger = (category) => {
-//   const logger = log4js.getLogger(category)
-//   logger.level = LOG_LEVEL || 'all'
-//   return logger
-// }
 
 module.exports = {
   getLogger

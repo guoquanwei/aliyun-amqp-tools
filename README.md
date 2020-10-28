@@ -1,12 +1,6 @@
-# http-assert
+# amqp-tools
 
-[![NPM Version][npm-version-image]][npm-url]
-[![NPM Downloads][npm-downloads-image]][npm-url]
-[![Node.js Version][node-version-image]][node-version-url]
-[![Build Status][travis-image]][travis-url]
-[![Test Coverage][coveralls-image]][coveralls-url]
-
-Assert with status codes. Like ctx.throw() in Koa, but with a guard.
+<u>just support ES6
 
 ## Install
 
@@ -15,97 +9,69 @@ This is a [Node.js](https://nodejs.org/en/) module available through the
 [`npm install` command](https://docs.npmjs.com/getting-started/installing-npm-packages-locally):
 
 ```bash
-$ npm install http-assert
+$ npm install aliyun-amqp-tools
 ```
 
 ## Example
 ```js
-var assert = require('http-assert')
-var ok = require('assert')
-
-var username = 'foobar' // username from request
-
-try {
-  assert(username === 'fjodor', 401, 'authentication failed')
-} catch (err) {
-  ok(err.status === 401)
-  ok(err.message === 'authentication failed')
-  ok(err.expose)
+const aliConfig = {
+    accessKeyId: 'xxxxx',
+    accessKeySecret: 'xxxxx',
+    resourceOwnerId: 'xxxxx',
+    host: 'xxxxx'
+    // 可追加属性
 }
+const amqpHelper = require('aliyun-amqp-tools')(aliConfig)
+
+const queue = {
+    name: 'xxxxx',
+    vhostName: 'xxxxx',
+    prefetch: 1 // default 1
+}
+const consumeFuc = async (msg) => {}
+await amqpHelper.startProduce(queue)
+await amqpHelper.startConsume(queue, consumeFuc)
+
+await amqpHelper.sendMsg({ anyKey: 'anyValue' })
 ```
 
 ## API
 
 The API of this module is intended to be similar to the
-[Node.js `assert` module](https://nodejs.org/dist/latest/docs/api/assert.html).
+[Node.js `aliyun-amqp-node-cli` module](https://github.com/AliwareMQ/amqp-demos/tree/master/amqp-node-demo?spm=a2c4g.11186623.2.12.1465618foxqNxZ).
 
-Each function will throw an instance of `HttpError` from
-[the `http-errors` module](https://www.npmjs.com/package/http-errors)
-when the assertion fails.
+### startProduce([queue])
+- queue
+```js
+queue = {
+    name: 'xxxxx',
+    vhostName: 'xxxxx',
+    prefetch: 1 // default 1
+}
+```
 
-### assert(value, [status], [message], [properties])
+### startConsume([queue], [consumeFuc])
+- consumeFuc
+```js
+consumeFuc = async (msg) => {
 
-Tests if `value` is truthy. If `value` is not truthy, an `HttpError`
-is thrown that is constructed with the given `status`, `message`,
-and `properties`.
+}
+```
 
-### assert.deepEqual(a, b, [status], [message], [properties])
+### sendMsg([queue], [msgObj || msgArray])
 
-Tests for deep equality between `a` and `b`. Primitive values are
-compared with the Abstract Equality Comparison (`==`). If `a` and `b`
-are not equal, an `HttpError` is thrown that is constructed with the
-given `status`, `message`, and `properties`.
+### getConn([vhostName], [role], [recoverFunc], [recoverFuncArgs])
+- role: "Producer" or "Consumer"
+- recoverFunc: When amqp reconnect will execute the function.
+- recoverFuncArgs: recoverFunc's args
 
-### assert.equal(a, b, [status], [message], [properties])
+### closeConn([vhostName], [role])
+- role: "Producer" or "Consumer"
 
-Tests shallow, coercive equality between `a` and `b` using the Abstract
-Equality Comparison (`==`). If `a` and `b` are not equal, an `HttpError`
-is thrown that is constructed with the given `status`, `message`,
-and `properties`.
-
-### assert.notDeepEqual(a, b, [status], [message], [properties])
-
-Tests for deep equality between `a` and `b`. Primitive values are
-compared with the Abstract Equality Comparison (`==`). If `a` and `b`
-are equal, an `HttpError` is thrown that is constructed with the given
-`status`, `message`, and `properties`.
-
-### assert.notEqual(a, b, [status], [message], [properties])
-
-Tests shallow, coercive equality between `a` and `b` using the Abstract
-Equality Comparison (`==`). If `a` and `b` are equal, an `HttpError` is
-thrown that is constructed with the given `status`, `message`, and
-`properties`.
-
-### assert.notStrictEqual(a, b, [status], [message], [properties])
-
-Tests strict equality between `a` and `b` as determined by the SameValue
-Comparison (`===`). If `a` and `b` are equal, an `HttpError` is thrown
-that is constructed with the given `status`, `message`, and `properties`.
-
-### assert.ok(value, [status], [message], [properties])
-
-Tests if `value` is truthy. If `value` is not truthy, an `HttpError`
-is thrown that is constructed with the given `status`, `message`,
-and `properties`.
-
-### assert.strictEqual(a, b, [status], [message], [properties])
-
-Tests strict equality between `a` and `b` as determined by the SameValue
-Comparison (`===`). If `a` and `b` are not equal, an `HttpError`
-is thrown that is constructed with the given `status`, `message`,
-and `properties`.
+### getConfirmChannel([connKey], [queueName])
+- connKey: vhostName + role
+- queueName: queue.name
 
 ## Licence
 
 [MIT](LICENSE)
-
-[coveralls-image]: https://badgen.net/coveralls/c/github/jshttp/http-assert/master
-[coveralls-url]: https://coveralls.io/r/jshttp/http-assert?branch=master
-[node-version-image]: https://badgen.net/npm/node/http-assert
-[node-version-url]: https://nodejs.org/en/download
-[npm-downloads-image]: https://badgen.net/npm/dm/http-assert
-[npm-url]: https://npmjs.org/package/http-assert
-[npm-version-image]: https://badgen.net/npm/v/http-assert
-[travis-image]: https://badgen.net/travis/jshttp/http-assert/master
-[travis-url]: https://travis-ci.org/jshttp/http-assert
