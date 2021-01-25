@@ -222,19 +222,15 @@ const sendConfirmMsg = async (queue, msg) => {
 const sendFanoutMsg = async (queue, msg) => {
   utils.objArgsCheck({queue, msg}, ['queue', 'msg'])
   const channel = await getFanoutChannel(queue.vhostName + 'Producer', queue)
-  return Promise.fromCallback((cb) => {
-    // args: 交互器、routingKey、消息体
+  try {
     channel.publish(queue.exchange, queue.routingKey || '', Buffer.from(JSON.stringify(msg)), {
       mandatory: true
-    }, (err) => {
-      if (err) {
-        logger.error(`${queue.name} sendMsg error: ${err.toString()}`)
-        return cb(err)
-      }
-      logger.debug(`${queue.name} sendMsg success: ${JSON.stringify(msg)}`)
-      return cb()
     })
-  })
+    logger.debug(`${queue.name} sendMsg success: ${JSON.stringify(msg)}`)
+  } catch (e) {
+    logger.error(`${queue.name} sendMsg error: ${err.toString()}`)
+    throw e
+  }
 }
 
 const sendMsg = async (queue, msg, type = 'work') => {

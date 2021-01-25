@@ -26,13 +26,14 @@ const amqpHelper = require('aliyun-amqp-tools')(aliConfig)
 const queue = {
     name: 'xxxxx',
     vhostName: 'xxxxx',
+    exchange: 'xxxx', // fanout queue is required!
     prefetch: 1 // default 1
 }
 const consumeFuc = async (msg) => {}
-await amqpHelper.startProduce(queue)
-await amqpHelper.startConsume(queue, consumeFuc)
+await amqpHelper.startProduce(queue, 'work' || 'fanout')
+await amqpHelper.startConsume(queue, consumeFuc, 'work' || 'fanout')
 
-await amqpHelper.sendMsg({ anyKey: 'anyValue' })
+await amqpHelper.sendMsg(queue, { anyKey: 'anyValue' }, 'work' || 'fanout')
 ```
 
 ## API
@@ -40,17 +41,18 @@ await amqpHelper.sendMsg({ anyKey: 'anyValue' })
 The API of this module is intended to be similar to the
 [Node.js `aliyun-amqp-node-cli` module](https://github.com/AliwareMQ/amqp-demos/tree/master/amqp-node-demo?spm=a2c4g.11186623.2.12.1465618foxqNxZ).
 
-### startProduce([queue])
+### startProduce([queue], [type])
 - queue
 ```js
 queue = {
     name: 'xxxxx',
     vhostName: 'xxxxx',
+    exchange: 'xxxx', // fanout queue is required!
     prefetch: 1 // default 1
 }
 ```
 
-### startConsume([queue], [consumeFuc])
+### startConsume([queue], [consumeFuc], [type])
 - consumeFuc
 ```js
 consumeFuc = async (msg) => {
@@ -58,7 +60,7 @@ consumeFuc = async (msg) => {
 }
 ```
 
-### sendMsg([queue], [msgObj || msgArray])
+### sendMsg([queue], [msgObj || msgArray], [type])
 You must init connect before sendMsg.
 
 ### getConn([vhostName], [role], [recoverFunc], [recoverFuncArgs])
@@ -68,10 +70,6 @@ You must init connect before sendMsg.
 
 ### closeConn([vhostName], [role])
 - role: "Producer" or "Consumer"
-
-### getConfirmChannel([connKey], [queueName])
-- connKey: vhostName + role
-- queueName: queue.name
 
 ## Licence
 
