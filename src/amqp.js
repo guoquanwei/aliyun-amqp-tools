@@ -86,77 +86,26 @@ const closeConn = async (vhostName, role) => {
   delete mqConns[connKey]
 }
 
-const getConfirmChannel = async (connKey, queueName) => {
-  utils.objArgsCheck({connKey, queueName}, ['connKey', 'queueName'])
+const getConfirmChannel = async (connKey, queue) => {
+  utils.objArgsCheck({connKey, queueName: queue.name}, ['connKey', 'queueName'])
   const localConn = await getLocalConn(connKey)
-  const thisChannel = localConn.channel[queueName]
+  const thisChannel = localConn.channel[queue.name]
   if (thisChannel) return thisChannel
   const channel = await localConn.connection.createConfirmChannel()
   // 定义队列
-  await channel.assertQueue(queueName, {durable: true})
-  localConn.channel[queueName] = channel
-  logger.info(`channel init success, ${connKey}>${queueName}`)
+  await channel.assertQueue(queue.name, {durable: true})
+  localConn.channel[queue.name] = channel
+  logger.info(`channel init success, ${connKey}>${queue.name}`)
   channel.on('return', msg => {
-    logger.error(`${connKey}>${queueName} channel msg returned: ${msg.content.toString()}`)
+    logger.error(`${connKey}>${queue.name} channel msg returned: ${msg.content.toString()}`)
   })
   channel.on('error', err => {
-    logger.error(`${connKey}>${queueName} channel err: ${err.toString()}`)
+    logger.error(`${connKey}>${queue.name} channel err: ${err.toString()}`)
   })
   channel.on('close', async () => {
-    logger.error(`${connKey}>${queueName} channel closed `)
+    logger.error(`${connKey}>${queue.name} channel closed `)
   })
   return channel
-}
-
-const startProduce = async (queue) => {
-  utils.objArgsCheck({queue}, ['queue'])
-  await getConn(queue.vhostName, 'Producer', startProduce, [queue])
-  await getConfirmChannel(queue.vhostName + 'Producer', queue.name)
-}
-
-const startConsume = async (queue, consumeFunc) => {
-  utils.objArgsCheck({queue, consumeFunc}, ['queue', 'consumeFunc'])
-  await getConn(queue.vhostName, 'Consumer', startConsume, [queue, consumeFunc])
-  const channel = await getConfirmChannel(queue.vhostName + 'Consumer', queue.name)
-  // 预加载1个消息
-  await channel.prefetch(parseInt(queue.prefetch || 1))
-  // 监听并消费通知队列
-  await channel.consume(queue.name, async (msg) => {
-    const contentStr = msg.content.toString()
-    const message = JSON.parse(contentStr)
-    try {
-      await consumeFunc(message)
-      channel.ack(msg)
-      logger.info(`${queue.name} consume message success, `, message)
-    } catch (e) {
-      channel.nack(msg, false, true)
-      logger.error(`${queue.name} consume message error, `, e)
-    }
-  }, {noAck: false})
-}
-
-const sendMsg = async (queue, msg) => {
-  utils.objArgsCheck({queue, msg}, ['queue', 'msg'])
-  // channel启动时 startProducer 已初始化，这里都会复用
-  const channel = await getConfirmChannel(queue.vhostName + 'Producer', queue.name)
-  return Promise.fromCallback((cb) => {
-    channel.sendToQueue(queue.name, Buffer.from(JSON.stringify(msg)), {
-      mandatory: true
-    }, (err) => {
-      if (err) {
-        logger.error(`${queue.name} sendMsg error: ${err.toString()}`)
-        return cb(err)
-      }
-      logger.debug(`${queue.name} sendMsg success: ${JSON.stringify(msg)}`)
-      return cb()
-    })
-  })
-}
-
-const startFanoutProduce = async (queue) => {
-  utils.objArgsCheck({queue}, ['queue'])
-  await getConn(queue.vhostName, 'Producer', startFanoutProduce, [queue])
-  await getFanoutChannel(queue.vhostName + 'Producer', queue)
 }
 
 const getFanoutChannel = async (connKey, quene) => {
@@ -181,6 +130,40 @@ const getFanoutChannel = async (connKey, quene) => {
   return channel
 }
 
+const startProduce = async (queue, type = 'confirm') => {
+  utils.objArgsCheck({queue, type}, ['queue', 'type'])
+  await getConn(queue.vhostName, 'Producer', startProduce, [queue])
+  switch (type) {
+    case "confirm":
+      await getConfirmChannel(queue.vhostName + 'Producer', queue)
+      break
+    case "fanout":
+      await getFanoutChannel(queue.vhostName + 'Producer', queue)
+      break
+  }
+}
+
+const startConfirmConsume = async (queue, consumeFunc) => {
+  utils.objArgsCheck({queue, consumeFunc}, ['queue', 'consumeFunc'])
+  await getConn(queue.vhostName, 'Consumer', startConsume, [queue, consumeFunc])
+  const channel = await getConfirmChannel(queue.vhostName + 'Consumer', queue)
+  // 预加载1个消息
+  await channel.prefetch(parseInt(queue.prefetch || 1))
+  // 监听并消费通知队列
+  await channel.consume(queue.name, async (msg) => {
+    const contentStr = msg.content.toString()
+    const message = JSON.parse(contentStr)
+    try {
+      await consumeFunc(message)
+      channel.ack(msg)
+      logger.info(`${queue.name} consume message success, `, message)
+    } catch (e) {
+      channel.nack(msg, false, true)
+      logger.error(`${queue.name} consume message error, `, e)
+    }
+  }, {noAck: false})
+}
+
 const startFanoutConsume = async (queue, consumeFunc) => {
   // 注意：不同的项目，启动不同的队列来监听广播，即每个项目queue.name不能相同
   utils.objArgsCheck({queue, consumeFunc, exchange: queue.exchange}, ['queue', 'consumeFunc', 'exchange'])
@@ -203,8 +186,37 @@ const startFanoutConsume = async (queue, consumeFunc) => {
       channel.nack(msg, false, true)
       logger.error(`${queue.name} consume message error, `, e)
     }
-  //  广播下 消息只负责发出去，收不到就没了
+    //  广播下 消息只负责发出去，收不到就没了
   }, {noAck: false})
+}
+
+const startConsume = async (queue, consumeFunc, type = 'confirm') => {
+  switch (type) {
+    case "confirm":
+      await startConfirmConsume(queue, consumeFunc)
+      break
+    case "fanout":
+      await startFanoutConsume(queue, consumeFunc)
+      break
+  }
+}
+
+const sendConfirmMsg = async (queue, msg) => {
+  utils.objArgsCheck({queue, msg}, ['queue', 'msg'])
+  // channel启动时 startProducer 已初始化，这里都会复用
+  const channel = await getConfirmChannel(queue.vhostName + 'Producer', queue)
+  return Promise.fromCallback((cb) => {
+    channel.sendToQueue(queue.name, Buffer.from(JSON.stringify(msg)), {
+      mandatory: true
+    }, (err) => {
+      if (err) {
+        logger.error(`${queue.name} sendMsg error: ${err.toString()}`)
+        return cb(err)
+      }
+      logger.debug(`${queue.name} sendMsg success: ${JSON.stringify(msg)}`)
+      return cb()
+    })
+  })
 }
 
 const sendFanoutMsg = async (queue, msg) => {
@@ -225,18 +237,23 @@ const sendFanoutMsg = async (queue, msg) => {
   })
 }
 
+const sendMsg = async (queue, msg, type = 'confirm') => {
+  switch (type) {
+    case "confirm":
+      await sendConfirmMsg(queue, msg)
+      break
+    case "fanout":
+      await sendFanoutMsg(queue, msg)
+      break
+  }
+}
 
 const funcs = {
   getConn,
   closeConn,
   startProduce,
   startConsume,
-  getConfirmChannel,
-  sendMsg,
-  startFanoutProduce,
-  startFanoutConsume,
-  getFanoutChannel,
-  sendFanoutMsg
+  sendMsg
 }
 
 const initFunc = (config) => {
