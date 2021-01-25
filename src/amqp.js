@@ -108,24 +108,24 @@ const getConfirmChannel = async (connKey, queue) => {
   return channel
 }
 
-const getFanoutChannel = async (connKey, quene) => {
-  utils.objArgsCheck({connKey, queueName: quene.name, exchange: queue.exchange}, ['connKey', 'queueName', 'exchange'])
+const getFanoutChannel = async (connKey, queue) => {
+  utils.objArgsCheck({connKey, queueName: queue.name, exchange: queue.exchange}, ['connKey', 'queueName', 'exchange'])
   const localConn = await getLocalConn(connKey)
-  const thisChannel = localConn.channel[quene.name]
+  const thisChannel = localConn.channel[queue.name]
   if (thisChannel) return thisChannel
   const channel = await localConn.connection.createChannel()
   // 定义交换器
-  await channel.assertExchange(quene.exchange, 'fanout')
-  localConn.channel[quene.name] = channel
-  logger.info(`fanoutChannel init success, ${connKey}>${quene.name}`)
+  await channel.assertExchange(queue.exchange, 'fanout')
+  localConn.channel[queue.name] = channel
+  logger.info(`fanoutChannel init success, ${connKey}>${queue.name}`)
   channel.on('return', msg => {
-    logger.error(`${connKey}>${quene.name} channel msg returned: ${msg.content.toString()}`)
+    logger.error(`${connKey}>${queue.name} channel msg returned: ${msg.content.toString()}`)
   })
   channel.on('error', err => {
-    logger.error(`${connKey}>${quene.name} channel err: ${err.toString()}`)
+    logger.error(`${connKey}>${queue.name} channel err: ${err.toString()}`)
   })
   channel.on('close', async () => {
-    logger.error(`${connKey}>${quene.name} channel closed `)
+    logger.error(`${connKey}>${queue.name} channel closed `)
   })
   return channel
 }
