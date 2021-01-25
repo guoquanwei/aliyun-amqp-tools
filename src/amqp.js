@@ -130,11 +130,11 @@ const getFanoutChannel = async (connKey, quene) => {
   return channel
 }
 
-const startProduce = async (queue, type = 'confirm') => {
+const startProduce = async (queue, type = 'work') => {
   utils.objArgsCheck({queue, type}, ['queue', 'type'])
   await getConn(queue.vhostName, 'Producer', startProduce, [queue])
   switch (type) {
-    case "confirm":
+    case "work":
       await getConfirmChannel(queue.vhostName + 'Producer', queue)
       break
     case "fanout":
@@ -190,9 +190,9 @@ const startFanoutConsume = async (queue, consumeFunc) => {
   }, {noAck: false})
 }
 
-const startConsume = async (queue, consumeFunc, type = 'confirm') => {
+const startConsume = async (queue, consumeFunc, type = 'work') => {
   switch (type) {
-    case "confirm":
+    case "work":
       await startConfirmConsume(queue, consumeFunc)
       break
     case "fanout":
@@ -237,9 +237,9 @@ const sendFanoutMsg = async (queue, msg) => {
   })
 }
 
-const sendMsg = async (queue, msg, type = 'confirm') => {
+const sendMsg = async (queue, msg, type = 'work') => {
   switch (type) {
-    case "confirm":
+    case "work":
       await sendConfirmMsg(queue, msg)
       break
     case "fanout":
