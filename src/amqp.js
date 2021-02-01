@@ -55,9 +55,7 @@ const getConn = async (vhostName, role, recoverFunc, args) => {
   })
   connection.on('close', async () => {
     logger.error(`MQ: ${connKey}, connection closed, reconnecting...`)
-    delete mqConns[connKey].connection
-    // 断连时, 接龙式刷新所有信道监听，避免并发创建多余链接
-    await Promise.map(mqConns[connKey].recoverFuncList, async obj => obj.recoverFunc(...obj.args), {concurrency: 1})
+    await reconnect(connKey)
   })
   connection.on('blocked', async () => {
     // 链接被阻塞，无法运转，可能是内存/CPU/磁盘出现了问题，这里可加监控
@@ -86,6 +84,17 @@ const closeConn = async (vhostName, role) => {
   delete mqConns[connKey]
 }
 
+// connError channelError
+let reconnectLock = {}
+const reconnect = async (connKey) => {
+  if (reconnectLock[connKey]) return
+  reconnectLock[connKey] = true
+  delete mqConns[connKey].connection
+  // 断连时, 接龙式刷新所有信道监听，避免并发创建多余链接
+  await Promise.map(mqConns[connKey].recoverFuncList, async obj => obj.recoverFunc(...obj.args), {concurrency: 1})
+  delete reconnectLock[connKey]
+}
+
 const getConfirmChannel = async (connKey, queue) => {
   utils.objArgsCheck({connKey, queueName: queue.name}, ['connKey', 'queueName'])
   const localConn = await getLocalConn(connKey)
@@ -104,6 +113,7 @@ const getConfirmChannel = async (connKey, queue) => {
   })
   channel.on('close', async () => {
     logger.error(`${connKey}>${queue.name} channel closed `)
+    await reconnect(connKey)
   })
   return channel
 }
@@ -126,6 +136,7 @@ const getFanoutChannel = async (connKey, queue) => {
   })
   channel.on('close', async () => {
     logger.error(`${connKey}>${queue.name} channel closed `)
+    await reconnect(connKey)
   })
   return channel
 }
@@ -145,7 +156,7 @@ const startProduce = async (queue, type = 'work') => {
 
 const startConfirmConsume = async (queue, consumeFunc) => {
   utils.objArgsCheck({queue, consumeFunc}, ['queue', 'consumeFunc'])
-  await getConn(queue.vhostName, 'Consumer', startConsume, [queue, consumeFunc])
+  await getConn(queue.vhostName, 'Consumer', startConfirmConsume, [queue, consumeFunc])
   const channel = await getConfirmChannel(queue.vhostName + 'Consumer', queue)
   // 预加载1个消息
   await channel.prefetch(parseInt(queue.prefetch || 1))
@@ -167,7 +178,7 @@ const startConfirmConsume = async (queue, consumeFunc) => {
 const startFanoutConsume = async (queue, consumeFunc) => {
   // 注意：不同的项目，启动不同的队列来监听广播，即每个项目queue.name不能相同
   utils.objArgsCheck({queue, consumeFunc, exchange: queue.exchange}, ['queue', 'consumeFunc', 'exchange'])
-  await getConn(queue.vhostName, 'Consumer', startConsume, [queue, consumeFunc])
+  await getConn(queue.vhostName, 'Consumer', startFanoutConsume, [queue, consumeFunc])
   const channel = await getFanoutChannel(queue.vhostName + 'Consumer', queue)
   // 定义队列
   await channel.assertQueue(queue.name)
