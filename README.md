@@ -1,6 +1,7 @@
 # aliyun-amqp-tools
 
-It is a aliyun-amqp package; now, it supports 'work' and 'fanout'.
+It is a aliyun-amqp tool of Node.js; now, it supports 'work' and 'fanout'.
+When some errors occurs, it can auto reconnects.
 
 ## Install
 
