@@ -1,6 +1,6 @@
-# amqp-tools
+# aliyun-amqp-tools
 
-<u>just support ES6
+It is a aliyun-amqp package; now, it supports 'work' and 'fanout'.
 
 ## Install
 
